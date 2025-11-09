@@ -1,0 +1,8 @@
+Flask
+gunicorn
+pytesseract
+PyPDF2
+Pillow
+PyCryptodome
+spacy
+pytextrank

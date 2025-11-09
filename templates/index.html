@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keyword Extractor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --primary-hover-color: #0056b3;
+            --light-gray: #f8f9fa;
+            --border-color: #dee2e6;
+            --text-color: #212529;
+            --bg-color: #fff;
+            --subtle-text-color: #6c757d;
+            --error-color: #dc3545;
+        }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--light-gray); color: var(--text-color); margin: 0; padding: 2rem; }
+        .main-container { max-width: 1400px; margin: auto; }
+        h1 { text-align: center; color: var(--primary-color); margin-bottom: 2rem; font-weight: 700; }
+        .content-wrapper { display: flex; gap: 2.5rem; align-items: flex-start; }
+        .input-section { flex: 0 0 60%; }
+        .output-section { flex: 1 1 40%; position: sticky; top: 2rem; }
+        .input-container { background: var(--bg-color); padding: 2rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.07); border: 1px solid var(--border-color); }
+        .input-tabs { display: flex; border-bottom: 1px solid var(--border-color); }
+        .tab-button { padding: 1rem 1.5rem; cursor: pointer; border: none; background: none; font-size: 1rem; font-weight: 500; color: var(--subtle-text-color); border-bottom: 3px solid transparent; margin-bottom: -1px; transition: all 0.2s ease-in-out; }
+        .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+        .tab-button:hover:not(.active) { color: var(--text-color); }
+        .input-field { display: none; padding-top: 1.5rem; }
+        .input-field.active { display: block; }
+        textarea, .action-bar input[type="number"] { border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem; padding: 12px; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+        textarea:focus, .action-bar input[type="number"]:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2); }
+        textarea { width: 100%; height: 250px; resize: vertical; }
+        .file-drop-zone { text-align: center; border: 2px dashed var(--border-color); padding: 3rem; border-radius: 8px; }
+        .file-input-hidden { display: none; }
+        .file-input-label { background-color: var(--primary-color); color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 10px; font-weight: 500; transition: background-color 0.2s ease; }
+        .file-input-label:hover { background-color: var(--primary-hover-color); }
+        .file-name-display { margin-top: 1rem; color: var(--subtle-text-color); font-style: italic; display: block; }
+        .action-bar { display: flex; gap: 1rem; margin-top: 1.5rem; align-items: center; }
+        .form-group { display: flex; align-items: center; gap: 0.5rem; }
+        .form-group label { font-weight: 500; }
+        .action-bar input[type="number"] { width: 70px; }
+        .search-button { flex-grow: 1; background-color: var(--primary-color); color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; transition: background-color 0.2s ease; }
+        .search-button:hover { background-color: var(--primary-hover-color); }
+        .output-container { position: relative; min-height: 150px; }
+        .results-box { background: var(--bg-color); padding: 2rem; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 15px rgba(0,0,0,0.07); }
+        .loader-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 255, 255, 0.8); display: none; justify-content: center; align-items: center; border-radius: 12px; z-index: 10; }
+        .loader { width: 50px; height: 50px; border: 5px solid var(--light-gray); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .keywords-list { display: flex; flex-wrap: wrap; gap: 12px; }
+        .keyword-tag { background-color: rgba(0, 123, 255, 0.1); color: var(--primary-color); padding: 8px 16px; border-radius: 50px; font-size: 1rem; font-weight: 500; }
+        .error { color: var(--error-color); text-align: center; background-color: #f8d7da; padding: 1rem; border-radius: 8px; border: 1px solid #f5c6cb; }
+        @media (max-width: 992px) {
+            body { padding: 1rem; }
+            .content-wrapper { flex-direction: column; }
+            .output-section { position: static; width: 100%; }
+            .input-section { width: 100%; }
+            .input-container { max-height: 60vh; overflow-y: auto; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <h1>Keyword Extractor</h1>
+        <div class="content-wrapper">
+            <div class="input-section">
+                <form id="keyword-form">
+                    <div class="input-container">
+                        <div class="input-tabs">
+                            <button type="button" class="tab-button active" onclick="showInput('text', this)"><i class="fa-solid fa-file-alt"></i> Text</button>
+                            <button type="button" class="tab-button" onclick="showInput('image', this)"><i class="fa-solid fa-image"></i> Image</button>
+                            <button type="button" class="tab-button" onclick="showInput('pdf', this)"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+                        </div>
+                        <input type="radio" id="input_type_text" name="input_type" value="text" checked style="display:none;">
+                        <input type="radio" id="input_type_image" name="input_type" value="image" style="display:none;">
+                        <input type="radio" id="input_type_pdf" name="input_type" value="pdf" style="display:none;">
+                        <div id="text_input" class="input-field active">
+                            <textarea name="article_text" placeholder="Paste a long article here..."></textarea>
+                        </div>
+                        <div id="image_input" class="input-field">
+                            <div class="file-drop-zone">
+                                <input type="file" id="image_file_input" class="file-input-hidden" accept="image/*">
+                                <label for="image_file_input" class="file-input-label"><i class="fa-solid fa-upload"></i> Choose Image</label>
+                                <span id="image_file_name" class="file-name-display">No file chosen (Max 4MB)</span>
+                            </div>
+                        </div>
+                        <div id="pdf_input" class="input-field">
+                            <div class="file-drop-zone">
+                                <input type="file" id="pdf_file_input" class="file-input-hidden" accept=".pdf">
+                                <label for="pdf_file_input" class="file-input-label"><i class="fa-solid fa-upload"></i> Choose PDF</label>
+                                <span id="pdf_file_name" class="file-name-display">No file chosen (Max 10MB)</span>
+                            </div>
+                        </div>
+                        <div class="action-bar">
+                            <div class="form-group">
+                                <label for="num_keywords">Keywords:</label>
+                                <input type="number" name="num_keywords" value="15" min="5" max="30">
+                            </div>
+                            <button type="submit" class="search-button">
+                                <i class="fa-solid fa-magnifying-glass"></i> Extract
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="output-section">
+                <div class="output-container">
+                    <div class="loader-overlay" id="loader">
+                        <div class="loader"></div>
+                    </div>
+                    <div class="results-box" id="results-box">
+                        <h2>Extracted Keywords</h2>
+                        <p>Your results will appear here.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('keyword-form');
+        const loader = document.getElementById('loader');
+        const resultsBox = document.getElementById('results-box');
+
+        function updateResults(data) {
+            resultsBox.innerHTML = '<h2>Extracted Keywords</h2>';
+            if (data.error) {
+                resultsBox.innerHTML += `<p class="error">${data.error}</p>`;
+            } else if (data.keywords && data.keywords.length > 0) {
+                const list = document.createElement('div');
+                list.className = 'keywords-list';
+                data.keywords.forEach(keyword => {
+                    const tag = document.createElement('span');
+                    tag.className = 'keyword-tag';
+                    tag.textContent = keyword;
+                    list.appendChild(tag);
+                });
+                resultsBox.appendChild(list);
+            } else {
+                resultsBox.innerHTML += '<p>No keywords found.</p>';
+            }
+        }
+        
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const formData = new FormData();
+            const activeInputType = document.querySelector('input[name="input_type"]:checked').value;
+            const maxImageSize = 4 * 1024 * 1024; // 4MB
+            const maxPDFSize = 10 * 1024 * 1024; // 10MB
+
+            formData.append('input_type', activeInputType);
+            formData.append('num_keywords', document.querySelector('input[name="num_keywords"]').value);
+
+            let hasInput = false;
+            if (activeInputType === 'text') {
+                const textValue = document.querySelector('textarea[name="article_text"]').value;
+                if (textValue.trim()) {
+                    formData.append('article_text', textValue);
+                    hasInput = true;
+                }
+            } else {
+                const fileInput = activeInputType === 'image' ? document.getElementById('image_file_input') : document.getElementById('pdf_file_input');
+                if (fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const maxSize = activeInputType === 'image' ? maxImageSize : maxPDFSize;
+                    if (file.size > maxSize) {
+                        updateResults({ error: `File is too large. Max size for ${activeInputType.toUpperCase()} is ${maxSize / 1024 / 1024}MB.` });
+                        return;
+                    }
+                    formData.append('file', file);
+                    hasInput = true;
+                }
+            }
+
+            if (!hasInput) {
+                updateResults({ error: 'Please provide text or select a file before extracting.' });
+                return;
+            }
+
+            loader.style.display = 'flex';
+            
+            try {
+                const response = await fetch('/extract', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await response.json();
+                updateResults(data);
+            } catch (error) {
+                updateResults({ error: 'A network error occurred. Please check your connection.' });
+            } finally {
+                loader.style.display = 'none';
+            }
+        });
+
+        function showInput(type, element) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.input-field').forEach(field => field.classList.remove('active'));
+            element.classList.add('active');
+            document.getElementById(type + '_input').classList.add('active');
+            document.getElementById('input_type_' + type).checked = true;
+        }
+
+        document.getElementById('image_file_input').addEventListener('change', function() {
+            const fileNameDisplay = document.getElementById('image_file_name');
+            fileNameDisplay.textContent = this.files.length > 0 ? this.files[0].name : 'No file chosen (Max 4MB)';
+        });
+        document.getElementById('pdf_file_input').addEventListener('change', function() {
+            const fileNameDisplay = document.getElementById('pdf_file_name');
+            fileNameDisplay.textContent = this.files.length > 0 ? this.files[0].name : 'No file chosen (Max 10MB)';
+        });
+    </script>
+</body>
+</html>
