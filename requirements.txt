@@ -5,6 +5,7 @@ PyPDF2
 Pillow
 PyCryptodome
 spacy
-pytextrank
-# spaCy मॉडल को सीधे एक पैकेज के रूप में इंस्टॉल करें
+# pytextrank हटा दिया गया
+# GitPython हटा दिया गया
+yake # यह नई लाइब्रेरी है
 en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1.tar.gz
